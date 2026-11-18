@@ -300,30 +300,35 @@ jobs:
       # Step 10: Verify standalone Gradle (used if wrapper is missing)
       # (Gradle 8.9 is already in the Docker image at /opt/gradle/bin/gradle)
       # ---------------------------------------------------------------------
+
+      # ---------------------------------------------------------------------
+      # Step 10: Install and verify required Gradle version
+      # ---------------------------------------------------------------------
       - name: Verify standalone Gradle (fallback)
         if: steps.toolchain.outputs.use_wrapper == 'false'
         run: |
-          GRADLE_VER="${{ steps.toolchain.outputs.gradle_version }}"
-          echo "Image has Gradle 8.9 system-wide at /opt/gradle/bin/gradle"
+          GRADLE_VER="8.11.1"
+
+          echo "Required Gradle version: $GRADLE_VER"
+          echo "System Gradle before replacement:"
           which gradle
-          gradle --version | head -3
-          # The image's system gradle (8.9) is new enough for any AGP 8.x.
-          # Only download a DIFFERENT version if the project needs an older
-          # one (rare — happens for AGP <= 7.x which requires gradle 7.x).
-          # Otherwise, trust the image's gradle and let the build use it.
-          if [ -n "$GRADLE_VER" ] && [ "$GRADLE_VER" != "8.9" ] && [ "$GRADLE_VER" != "8.0" ]; then
-            # Only download if the requested version is older than 8.9 (e.g. 7.5 for AGP 7.4).
-            # For newer Gradle requirements (8.7, 8.10), the image's 8.9 satisfies them.
-            REQ_MAJOR=$(echo "$GRADLE_VER" | cut -d. -f1)
-            if [ "$REQ_MAJOR" -lt 8 ]; then
-              echo "Project wants older Gradle $GRADLE_VER — downloading..."
-              wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VER}-bin.zip" -O /tmp/gradle.zip
-              unzip -q /tmp/gradle.zip -d /opt
-              echo "/opt/gradle-${GRADLE_VER}/bin" >> "$GITHUB_PATH"
-            else
-              echo "✓ Image's Gradle 8.9 satisfies the project's requirement of $GRADLE_VER+"
-            fi
-          fi
+          gradle --version
+
+          echo "Downloading Gradle $GRADLE_VER..."
+          wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VER}-bin.zip" -O /tmp/gradle.zip
+
+          echo "Extracting Gradle..."
+          unzip -q /tmp/gradle.zip -d /opt
+
+          echo "/opt/gradle-${GRADLE_VER}/bin" >> "$GITHUB_PATH"
+          export PATH="/opt/gradle-${GRADLE_VER}/bin:$PATH"
+
+          echo "Verifying installed Gradle:"
+          which gradle
+          gradle --version
+
+          echo "Gradle installation completed."
+
 
       # ---------------------------------------------------------------------
       # Step 11: Build the project (writes build.json)
