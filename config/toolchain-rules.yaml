@@ -16,6 +16,7 @@
 #
 # Reference: https://developer.android.com/build/releases/gradle-plugin
 agp_to_gradle:
+  "8.10": "8.11.1"
   "8.7": "8.9"
   "8.6": "8.7"
   "8.5": "8.7"
